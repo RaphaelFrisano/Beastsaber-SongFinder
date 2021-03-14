@@ -24,7 +24,7 @@ if __name__ == '__main__':
         #Set up Spotify Connection 
         client_id = 'd5ec1915e2b3452f87cd1f224551a935'
         f = open("secret.txt", "r")
-        client_secret = str(f.read()
+        client_secret = str(f.read())
         username = '16r49f73ryoeuabwxqwgpimzs'
         scope = 'user-library-read playlist-modify-public playlist-read-private'
         redirect_uri='http://localhost:8888/callback'
