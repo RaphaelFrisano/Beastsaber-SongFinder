@@ -1,8 +1,13 @@
+#OS and Time import for Data formatting etc.
 import time
 import os
+
+# Openpyxel Import for Excel
 import openpyxl
 from openpyxl import load_workbook
 from openpyxl import Workbook
+
+# Selenium Imports for Browser
 from selenium.webdriver.common.keys import Keys
 from selenium import webdriver
 from selenium.webdriver.support.wait import WebDriverWait
@@ -13,32 +18,67 @@ from selenium.webdriver.firefox.firefox_profile import FirefoxProfile
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver import DesiredCapabilities
 from selenium.webdriver import Firefox
+
+# Spotipy import for Spotify
 import spotipy
 from spotipy import util
 from spotipy.oauth2 import SpotifyClientCredentials
 
+
+
 if __name__ == '__main__':
 
-    def main():
+    def get_playlist_tracks(sp, sp_username, playlist_id):
+        # Gets all Tracks from playlists even if they have over 100 Songs
+        results = sp.user_playlist_tracks(sp_username,playlist_id)
+        tracks = results['items']
+        while results['next']:
+            results = sp.next(results)
+            tracks.extend(results['items'])
+        return tracks
 
-        #Set up Spotify Connection 
+    def format_output_playlists_song():
+        # Output all Songs to console
+        # ! Requires get_playlist_tracks() function
+        playlist_id = input("Your playlist id: ")
+        trackslist = get_playlist_tracks(sp, sp_username, playlist_id)
+
+        for item in trackslist:
+            songname = item['track']['name']
+            songid = item['track']['id']
+            mainartistname = item['track']['artists'][0]['name']
+            mainartistid = item['track']['artists'][0]['id']
+            print(songname, mainartistname, sep=' - ')
+
+    def setup_spotify(client_id, client_secret, sp_username, scope, redirect_uri):
+        # Sets up a Spotify Client for User with generated Client + Secret
+        client_credentials_manager = SpotifyClientCredentials(client_id=client_id, client_secret=client_secret)
+        sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
+        token = util.prompt_for_user_token(sp_username, scope, client_id, client_secret, redirect_uri)
+        if token:
+            sp = spotipy.Spotify(auth=token)
+            return sp
+        else:
+            print("Can't get token for ", sp_username)
+            return ("Can't get token for " + sp_username)
+
+    def main():
+        # <----------------------------------->
+        # <---| Set up Spotify Connection |--->
+        # <----------------------------------->
+        # <-| Variable Definition |->
         client_id = 'd5ec1915e2b3452f87cd1f224551a935'
         f = open("secret.txt", "r")
         client_secret = str(f.read())
-        username = '16r49f73ryoeuabwxqwgpimzs'
+        sp_username = '16r49f73ryoeuabwxqwgpimzs'
         scope = 'user-library-read playlist-modify-public playlist-read-private'
         redirect_uri='http://localhost:8888/callback'
-        client_credentials_manager = SpotifyClientCredentials(client_id=client_id, client_secret=client_secret)
-        sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
-        token = util.prompt_for_user_token(username, scope, client_id, client_secret, redirect_uri)
-        if token:
-            sp = spotipy.Spotify(auth=token)
-        else:
-            print("Can't get token for", username)
+        # <-| Generate Spotify Object and save into variable "sp" |->
+        sp = setup_spotify(client_id, client_secret, sp_username, scope, redirect_uri)
 
         #Connect to playlist
         playlist_id = input("Your playlist id: ")
-        trackslist = get_playlist_tracks(sp, username, playlist_id)
+        trackslist = get_playlist_tracks(sp, sp_username, playlist_id)
 
         #Open/Create Excels
         allxlxwb = load_workbook(os.getcwd() + "/All_Found_Songs.xlsx")
@@ -90,7 +130,7 @@ if __name__ == '__main__':
             # Check if Song exists
             browser.find_element_by_xpath("/html/body/div[1]/div/div[2]/div/aside/div[1]/div/div[1]/form/fieldset/input[1]").click()
             browser.find_element_by_xpath("/html/body/div[1]/div/div[2]/div/aside/div[1]/div/div[1]/form/fieldset/input[1]").clear()
-            browser.find_element_by_xpath("/html/body/div[1]/div/div[2]/div/aside/div[1]/div/div[1]/form/fieldset/input[1]").send_keys(artist)
+            browser.find_element_by_xpath("/html/body/div[1]/div/div[2]/div/aside/div[1]/div/div[1]/form/fieldset/input[1]").send_keys(artist + " " + songtitle)
             browser.find_element_by_xpath("/html/body/div[1]/div/div[2]/div/aside/div[1]/div/div[1]/form/fieldset/input[2]").click()
 
             try:
@@ -125,13 +165,7 @@ if __name__ == '__main__':
         newxlxwb.save(os.getcwd() + "/New_Found_Songs.xlsx")
         input("ENTER in CMD to end: ")
 
-    def get_playlist_tracks(sp, username,playlist_id):
-        results = sp.user_playlist_tracks(username,playlist_id)
-        tracks = results['items']
-        while results['next']:
-            results = sp.next(results)
-            tracks.extend(results['items'])
-        return tracks
-
-# Start of Script
+# <---------------------->
+# <---| Start Script |--->
+# <---------------------->
 main()
